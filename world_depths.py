@@ -1,9 +1,12 @@
 # AI Rev tech task
 
+# Class expects non-negative integers list1
+#
 # we have a 2-D world (like Terraria!)
 # How deep is the deepest water pool?
 # Assumptions:
 #   1. pools at world edges have depth 0
+#   2. world points are positive integers including 0
 #
 # Game plan:
 #   find all local peaks
@@ -16,44 +19,58 @@
 #
 
 from scipy.signal import find_peaks
+import matplotlib.pyplot as plt
+
+DEBUG = 1
 
 
-class WorldDepth:
+# pad 0 height edges to the data set because signal.find_peaks skips edges
+def find_peak_locations ( points ):
+    world_points = [ 0 ]
+    world_points.extend ( points )
+    world_points.append ( 0 )
+    peak_points, _ = find_peaks ( world_points )
+    return [ p - 1 for p in peak_points ]  # need list indexes
 
-    def find_deepest_pool ( self, points ):
-        if not points:
-            return 0
 
-        peak_points, _ = find_peaks ( points )
+def find_tallest_peak ( peak_points, points ):
+    top = 0
+    for p in peak_points:
+        if top < points [ p ]:
+            top = points [ p ]
+    return top
 
-        # set initial lowest point to world global maximum
-        dip = self.find_global_max ( peak_points, points )
 
-        deepest_pool = 0
-        for peak_index in range ( 1, len ( peak_points ) ):
+def find_deepest_pool ( points ):
+    if not points:
+        return 0
+    for p in points:
+        if p < 0:
+            return -1
 
-            # walk right
-            for i in range ( peak_index - 1, peak_index ):
-                if points [ i - 1 ] >= points [ i ]:
-                    dip = points [ i ]
-                else:
-                    break
+    peak_indexes = find_peak_locations ( points )
+    if 2 > len ( peak_indexes ):
+        return 0
 
-            # current pool depth is the difference between the lower of two adjacent peaks
-            # and the lowest point between them
-            # keep a running maximum
-            if points [ peak_index - 1 ] <= points [ peak_index ]:
-                if deepest_pool < points [ peak_index - 1 ] - dip:
-                    deepest_pool = points [ peak_index - 1 ] - dip
+    dip = find_tallest_peak ( peak_indexes, points )  # initialize lowest point to largest datapoint
+    deepest_pool = 0
+    for peak_index in range ( 1, len ( peak_indexes ) ):
+
+        # walk right
+        for points_index in range ( peak_indexes [ peak_index - 1 ], peak_indexes [ peak_index ] ):
+            if points [ points_index ] >= points [ points_index + 1 ]:
+                dip = points [ points_index ]
             else:
-                if deepest_pool < points [ peak_index ] - dip:
-                    deepest_pool = points [ peak_index ] - dip
+                break
 
-        return deepest_pool
+        if points [ peak_index - 1 ] <= points [ peak_index ]:
+            if deepest_pool < points [ peak_index - 1 ] - dip:
+                deepest_pool = points [ peak_index - 1 ] - dip
+        else:
+            if deepest_pool < points [ peak_index ] - dip:
+                deepest_pool = points [ peak_index ] - dip
 
-    def find_global_max ( self, peak_points, points ):
-        dip = 0
-        for p in peak_points:
-            if points [ p ] > dip:
-                dip = points [ p ]
-        return dip
+    if 0 != DEBUG:
+        print ( "Deepest pool:", deepest_pool )
+
+    return deepest_pool
