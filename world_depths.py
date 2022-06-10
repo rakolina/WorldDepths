@@ -6,19 +6,19 @@
 #   1. pools at world edges have depth 0
 #
 # Game plan:
-#   set deepest world point at highest value in world points
-#   find all local maxima
-#   walk all maxima but start at second one
-#     find lowest point between adjaacent local maxima
-#       set deepest pool to the difference between the smaller of two adjacent local maxima and the deepest point
+#   find all local peaks
+#   safely walk all peaks
+#     find lowest point between two adjacent local maxima
+#       current pool depth is the difference
+#       between the lower of the two adjacent peaks
+#       and the deepest point between them
+#     remember the deepest pool seen so far
 #
 
 from scipy.signal import find_peaks
 
 
 class WorldDepth:
-    # world_points = [ 2, 1, 2, 3, 1, 3, 0, 1, 2, 6, 3, 5, 2, 1, 4, 9, 7, 8 ]
-
 
     def find_deepest_pool ( self, points ):
         if not points:
@@ -27,33 +27,33 @@ class WorldDepth:
         peak_points, _ = find_peaks ( points )
 
         # set initial lowest point to world global maximum
+        dip = self.find_global_max ( peak_points, points )
+
+        deepest_pool = 0
+        for peak_index in range ( 1, len ( peak_points ) ):
+
+            # walk right
+            for i in range ( peak_index - 1, peak_index ):
+                if points [ i - 1 ] >= points [ i ]:
+                    dip = points [ i ]
+                else:
+                    break
+
+            # current pool depth is the difference between the lower of two adjacent peaks
+            # and the lowest point between them
+            # keep a running maximum
+            if points [ peak_index - 1 ] <= points [ peak_index ]:
+                if deepest_pool < points [ peak_index - 1 ] - dip:
+                    deepest_pool = points [ peak_index - 1 ] - dip
+            else:
+                if deepest_pool < points [ peak_index ] - dip:
+                    deepest_pool = points [ peak_index ] - dip
+
+        return deepest_pool
+
+    def find_global_max ( self, peak_points, points ):
         dip = 0
         for p in peak_points:
             if points [ p ] > dip:
                 dip = points [ p ]
-
-        left_edge = 0
-        deepest_pool = 0
-        for peak_idx in peak_points:
-            # start at second local maximum
-            if 0 == peak_idx:
-                break
-
-            # walk left
-            for i in range ( peak_idx, left_edge + 1, -1 ):
-                if points [ i - 1 ] < points [ i ]:
-                    dip = points [ i - 1 ]
-                else:
-                    break
-
-            # pool depth is the difference between the lower local maximum and the local lowset point
-            if points [ left_edge ] <= points [ peak_idx ]:
-                if deepest_pool < points [ left_edge ] - dip:
-                    deepest_pool = points [ left_edge ] - dip
-            else:
-                if deepest_pool < points [ peak_idx ] - dip:
-                    deepest_pool = points [ peak_idx ] - dip
-
-            left_edge = peak_idx
-
-        return deepest_pool
+        return dip
