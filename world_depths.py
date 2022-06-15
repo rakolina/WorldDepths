@@ -6,6 +6,7 @@
 # How deep is the deepest water pool?
 #
 # Assumptions:
+#   0. world points list fits in memory - otherwise we need paging/parallelization across multiple computers
 #   1. pools at world edges have depth 0
 #   2. world points are non-negative integers
 #
